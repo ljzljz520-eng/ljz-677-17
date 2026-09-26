@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Node.js
+node_modules
+npm-debug.log
+
+# Java
+target
+*.class
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+test/
+tests/
+__tests__/
+
+# Misc
+.env.local
+.env.*.local
