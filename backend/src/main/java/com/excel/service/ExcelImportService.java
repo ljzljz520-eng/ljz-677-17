@@ -8,10 +8,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.excel.dto.ExcelDataDTO;
 import com.excel.dto.ImportResultDTO;
 import com.excel.entity.ExcelData;
+import com.excel.entity.ImportError;
 import com.excel.entity.ImportRecord;
 import com.excel.entity.User;
 import com.excel.listener.ExcelDataListener;
 import com.excel.mapper.ExcelDataMapper;
+import com.excel.mapper.ImportErrorMapper;
 import com.excel.mapper.ImportRecordMapper;
 import com.excel.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class ExcelImportService {
 
     private final ExcelDataMapper excelDataMapper;
     private final ImportRecordMapper importRecordMapper;
+    private final ImportErrorMapper importErrorMapper;
     private final UserMapper userMapper;
 
     /**
@@ -61,7 +64,7 @@ public class ExcelImportService {
         importRecordMapper.insert(record);
 
         // 使用EasyExcel SAX模式解析，避免OOM
-        ExcelDataListener listener = new ExcelDataListener(excelDataMapper, batchNo);
+        ExcelDataListener listener = new ExcelDataListener(excelDataMapper, importErrorMapper, batchNo);
 
         try {
             // 根据文件后缀判断Excel类型
@@ -141,6 +144,17 @@ public class ExcelImportService {
      */
     public List<ExcelData> getPendingReportData(String batchNo) {
         return excelDataMapper.selectByBatchAndStatus(batchNo, 0);
+    }
+
+    /**
+     * 获取导入异常数据（校验失败/保存失败的原始行）
+     */
+    public List<ImportError> getImportErrors(String batchNo) {
+        return importErrorMapper.selectList(
+                new LambdaQueryWrapper<ImportError>()
+                        .eq(ImportError::getBatchNo, batchNo)
+                        .orderByAsc(ImportError::getRowIndex)
+                        .orderByAsc(ImportError::getId));
     }
 
     /**

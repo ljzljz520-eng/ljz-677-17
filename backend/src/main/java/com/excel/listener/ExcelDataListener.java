@@ -6,7 +6,9 @@ import com.alibaba.excel.read.listener.ReadListener;
 import com.alibaba.excel.util.ListUtils;
 import com.excel.dto.ExcelDataDTO;
 import com.excel.entity.ExcelData;
+import com.excel.entity.ImportError;
 import com.excel.mapper.ExcelDataMapper;
+import com.excel.mapper.ImportErrorMapper;
 import com.excel.utils.ValidationUtils;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -58,10 +60,12 @@ public class ExcelDataListener implements ReadListener<ExcelDataDTO> {
     private int totalCount = 0;
 
     private final ExcelDataMapper excelDataMapper;
+    private final ImportErrorMapper importErrorMapper;
     private final String batchNo;
 
-    public ExcelDataListener(ExcelDataMapper excelDataMapper, String batchNo) {
+    public ExcelDataListener(ExcelDataMapper excelDataMapper, ImportErrorMapper importErrorMapper, String batchNo) {
         this.excelDataMapper = excelDataMapper;
+        this.importErrorMapper = importErrorMapper;
         this.batchNo = batchNo;
     }
 
@@ -77,6 +81,7 @@ public class ExcelDataListener implements ReadListener<ExcelDataDTO> {
             data.setErrorMsg(errorMsg);
             errorList.add(data);
             failCount++;
+            saveError(data);
             logger.warn("第{}行数据校验失败: {}", rowIndex, errorMsg);
             return;
         }
@@ -129,8 +134,23 @@ public class ExcelDataListener implements ReadListener<ExcelDataDTO> {
                     BeanUtil.copyProperties(data, errorDto);
                     errorDto.setErrorMsg("数据库保存失败: " + ex.getMessage());
                     errorList.add(errorDto);
+                    saveError(errorDto);
                 }
             }
+        }
+    }
+
+    /**
+     * 持久化异常数据，用于后续导出异常模板
+     */
+    private void saveError(ExcelDataDTO data) {
+        try {
+            ImportError error = new ImportError();
+            BeanUtil.copyProperties(data, error);
+            error.setBatchNo(batchNo);
+            importErrorMapper.insert(error);
+        } catch (Exception e) {
+            logger.error("异常数据持久化失败, 批次号: {}, 行号: {}", batchNo, data.getRowIndex(), e);
         }
     }
 }

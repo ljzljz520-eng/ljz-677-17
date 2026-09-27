@@ -86,6 +86,10 @@ export const excelApi = {
 
   exportErrors: (batchNo) => {
     return `${baseURL}/excel/export/errors/${batchNo}`
+  },
+
+  exportImportErrors: (batchNo) => {
+    return `${baseURL}/excel/export/import-errors/${batchNo}`
   }
 }
 

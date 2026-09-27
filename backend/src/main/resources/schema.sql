@@ -57,5 +57,25 @@ CREATE TABLE IF NOT EXISTS `import_record` (
     UNIQUE KEY `uk_batch_no` (`batch_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='导入记录表';
 
+-- 导入异常数据表（校验失败/保存失败的原始行，用于导出异常模板）
+CREATE TABLE IF NOT EXISTS `import_error` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `batch_no` VARCHAR(50) NOT NULL COMMENT '导入批次号（任务号）',
+    `row_index` INT COMMENT '原始Excel行号',
+    `data_code` VARCHAR(50) COMMENT '数据编号',
+    `name` VARCHAR(50) COMMENT '姓名',
+    `id_card` VARCHAR(20) COMMENT '身份证号',
+    `phone` VARCHAR(20) COMMENT '手机号',
+    `amount` DECIMAL(15,2) COMMENT '金额',
+    `address` VARCHAR(200) COMMENT '地址',
+    `remark` VARCHAR(500) COMMENT '备注',
+    `error_msg` VARCHAR(500) COMMENT '错误原因',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` TINYINT DEFAULT 0 COMMENT '是否删除：0-否 1-是',
+    PRIMARY KEY (`id`),
+    INDEX `idx_batch_no` (`batch_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='导入异常数据表';
+
 -- 管理员用户由应用启动时通过 DataInitializer 自动创建
 -- 账号: admin  密码: admin123

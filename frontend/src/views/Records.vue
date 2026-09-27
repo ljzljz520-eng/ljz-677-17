@@ -48,11 +48,20 @@
             {{ formatTime(row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <div class="flex space-x-2">
               <el-button type="primary" link size="small" @click="viewDetail(row)">
                 详情
+              </el-button>
+              <el-button
+                v-if="row.failCount > 0"
+                type="warning"
+                link
+                size="small"
+                @click="downloadImportErrors(row)"
+              >
+                异常模板
               </el-button>
               <el-button
                 v-if="row.status === 1"
@@ -273,6 +282,12 @@ const retryReport = async () => {
 const exportErrors = () => {
   const token = userStore.token
   const url = excelApi.exportErrors(currentBatchNo.value)
+  window.open(`${url}?token=${token}`, '_blank')
+}
+
+const downloadImportErrors = (row) => {
+  const token = userStore.token
+  const url = excelApi.exportImportErrors(row.batchNo)
   window.open(`${url}?token=${token}`, '_blank')
 }
 

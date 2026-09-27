@@ -92,7 +92,16 @@ docker compose logs -f
 - `POST /api/excel/report/{batchNo}` - 上报数据到国家平台
 - `GET /api/excel/report/failed/{batchNo}` - 获取上报失败数据
 - `POST /api/excel/report/retry/{batchNo}` - 重试上报
-- `GET /api/excel/export/errors/{batchNo}` - 导出错误数据
+- `GET /api/excel/export/import-errors/{batchNo}` - 下载导入异常模板（仅异常行，列顺序与导入模板一致，修正后可重新上传）
+- `GET /api/excel/export/errors/{batchNo}` - 导出上报异常数据
+
+### 异常数据导出说明
+
+导入或上报出现异常时，可下载异常数据 Excel：
+
+- 前 7 列与导入模板完全一致（数据编号、姓名、身份证号、手机号、金额、地址、备注），末尾追加「错误原因」「原行号」供修正参考
+- 仅包含异常行，用户在导出文件中直接修正后可重新上传（追加列会被自动忽略），也可将前 7 列复制回导入模板
+- 文件名包含任务号（批次号）与错误数量，例如：`异常数据_导入_{batchNo}_共12条.xlsx`
 
 ## 数据导入模板
 
@@ -112,3 +121,4 @@ docker compose logs -f
 2. 数据每1000条批量入库，保证性能
 3. 上报国家平台为模拟功能，会随机产生5%的失败率用于测试异常处理
 4. 密码使用BCrypt加密存储，与数据库密码加密方式一致
+5. 导入异常数据持久化在 `import_error` 表；若从旧版本升级且数据库 volume 已初始化，需手动执行 `schema.sql` 中的建表语句（`CREATE TABLE IF NOT EXISTS`，可安全重复执行）

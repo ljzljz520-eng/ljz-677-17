@@ -6,6 +6,11 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
+/**
+ * 异常数据导出模板
+ * 前7列与导入模板（ExcelDataDTO）列顺序完全一致，方便修正后直接复制回模板重新上传；
+ * 末尾追加错误原因和原行号，仅作为修正参考，重新上传时会被自动忽略
+ */
 @Data
 public class ErrorExportDTO {
 
@@ -40,4 +45,8 @@ public class ErrorExportDTO {
     @ExcelProperty(value = "错误原因", index = 7)
     @ColumnWidth(40)
     private String errorMsg;
+
+    @ExcelProperty(value = "原行号", index = 8)
+    @ColumnWidth(10)
+    private Integer rowIndex;
 }

@@ -126,13 +126,25 @@
 
       <!-- 错误列表 -->
       <div v-if="importResult.errorList && importResult.errorList.length > 0">
-        <h4 class="font-medium text-gray-700 mb-3">错误数据详情</h4>
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-medium text-gray-700">错误数据详情</h4>
+          <el-button type="primary" link size="small" @click="downloadErrorTemplate">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            下载异常数据模板
+          </el-button>
+        </div>
         <el-table :data="importResult.errorList" stripe max-height="300">
           <el-table-column prop="rowIndex" label="行号" width="80" />
           <el-table-column prop="dataCode" label="数据编号" width="120" />
           <el-table-column prop="name" label="姓名" width="100" />
           <el-table-column prop="errorMsg" label="错误原因" />
         </el-table>
+        <p class="text-sm text-gray-400 mt-2">
+          可下载异常数据模板（仅含异常行、错误说明和原始字段，列顺序与导入模板一致），修正后重新上传即可
+        </p>
       </div>
 
       <!-- 操作按钮 -->
@@ -250,6 +262,13 @@ const handleUpload = async () => {
 const downloadTemplate = () => {
   const token = userStore.token
   const url = excelApi.downloadTemplate()
+  window.open(`${url}?token=${token}`, '_blank')
+}
+
+const downloadErrorTemplate = () => {
+  if (!importResult.value?.batchNo) return
+  const token = userStore.token
+  const url = excelApi.exportImportErrors(importResult.value.batchNo)
   window.open(`${url}?token=${token}`, '_blank')
 }
 
