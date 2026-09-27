@@ -28,6 +28,10 @@ request.interceptors.request.use(
 
 request.interceptors.response.use(
   (response) => {
+    // 文件下载（blob）直接放行，由调用方处理
+    if (response.config.responseType === 'blob') {
+      return response
+    }
     const res = response.data
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
@@ -43,6 +47,15 @@ request.interceptors.response.use(
         const userStore = useUserStore()
         userStore.logout()
         router.push('/login')
+      } else if (data instanceof Blob && data.type?.includes('application/json')) {
+        // 文件下载接口返回的JSON错误信息（blob形式）
+        data.text().then((text) => {
+          try {
+            ElMessage.error(JSON.parse(text).message || '下载失败')
+          } catch {
+            ElMessage.error('下载失败')
+          }
+        })
       } else {
         ElMessage.error(data?.message || '请求失败')
       }
@@ -52,6 +65,45 @@ request.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+/**
+ * 下载文件（自动携带token，从响应头解析文件名并保存）
+ * @param {string} path 接口路径，如 /excel/export/import-errors/xxx
+ */
+export const downloadFile = async (path) => {
+  const res = await request.get(path, { responseType: 'blob' })
+  const blob = res.data
+
+  // 后端未返回文件（如没有异常数据）时，给出提示
+  if (blob.type && blob.type.includes('application/json')) {
+    const text = JSON.parse(await blob.text())
+    const message = text.message || '下载失败'
+    ElMessage.error(message)
+    throw new Error(message)
+  }
+
+  // 从Content-Disposition解析文件名（格式：attachment;filename*=utf-8''xxx.xlsx）
+  const disposition = res.headers['content-disposition'] || ''
+  let filename = 'download.xlsx'
+  const utf8Match = disposition.match(/filename\*=utf-8''([^;]+)/i)
+  if (utf8Match) {
+    filename = decodeURIComponent(utf8Match[1])
+  } else {
+    const asciiMatch = disposition.match(/filename="?([^";]+)"?/i)
+    if (asciiMatch) {
+      filename = asciiMatch[1]
+    }
+  }
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 export const authApi = {
   login: (data) => request.post('/auth/login', data)
@@ -86,6 +138,10 @@ export const excelApi = {
 
   exportErrors: (batchNo) => {
     return `${baseURL}/excel/export/errors/${batchNo}`
+  },
+
+  exportImportErrors: (batchNo) => {
+    return `/excel/export/import-errors/${batchNo}`
   }
 }
 

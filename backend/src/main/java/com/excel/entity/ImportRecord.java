@@ -53,6 +53,12 @@ public class ImportRecord {
     private String errorDetails;
 
     /**
+     * 异常数据明细（JSON格式），用于导出异常数据模板
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String errorData;
+
+    /**
      * 操作人ID
      */
     private Long operatorId;

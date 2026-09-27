@@ -92,7 +92,8 @@ docker compose logs -f
 - `POST /api/excel/report/{batchNo}` - 上报数据到国家平台
 - `GET /api/excel/report/failed/{batchNo}` - 获取上报失败数据
 - `POST /api/excel/report/retry/{batchNo}` - 重试上报
-- `GET /api/excel/export/errors/{batchNo}` - 导出错误数据
+- `GET /api/excel/export/errors/{batchNo}` - 导出上报失败数据
+- `GET /api/excel/export/import-errors/{batchNo}` - 下载导入异常数据模板（仅含异常行，列顺序与导入模板一致，修正后可直接重新上传）
 
 ## 数据导入模板
 

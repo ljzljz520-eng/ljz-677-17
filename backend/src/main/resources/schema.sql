@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS `import_record` (
     `fail_count` INT DEFAULT 0 COMMENT '失败数量',
     `status` TINYINT DEFAULT 0 COMMENT '导入状态：0-处理中 1-完成 2-失败',
     `error_details` TEXT COMMENT '错误详情',
+    `error_data` LONGTEXT COMMENT '异常数据明细(JSON格式)，用于导出异常数据模板',
     `operator_id` BIGINT COMMENT '操作人ID',
     `operator_name` VARCHAR(50) COMMENT '操作人姓名',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

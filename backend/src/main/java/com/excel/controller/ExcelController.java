@@ -1,8 +1,10 @@
 package com.excel.controller;
 
+import cn.hutool.json.JSONUtil;
 import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.excel.dto.ApiResponse;
+import com.excel.dto.ErrorExportDTO;
 import com.excel.dto.ExcelDataDTO;
 import com.excel.dto.ImportResultDTO;
 import com.excel.dto.ReportResultDTO;
@@ -16,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -146,16 +149,10 @@ public class ExcelController {
     public void exportErrors(@PathVariable String batchNo, HttpServletResponse response) throws IOException {
         List<ExcelData> failedList = reportService.getFailedReportData(batchNo);
 
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setCharacterEncoding("utf-8");
-        String fileName = URLEncoder.encode("上报失败数据_" + batchNo, StandardCharsets.UTF_8)
-                .replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
-
-        // 转换为DTO
-        List<ExcelDataDTO> exportList = new ArrayList<>();
+        // 转换为导出DTO，列顺序与导入模板一致，最后一列为错误原因
+        List<ErrorExportDTO> exportList = new ArrayList<>();
         for (ExcelData data : failedList) {
-            ExcelDataDTO dto = new ExcelDataDTO();
+            ErrorExportDTO dto = new ErrorExportDTO();
             dto.setDataCode(data.getDataCode());
             dto.setName(data.getName());
             dto.setIdCard(data.getIdCard());
@@ -167,8 +164,55 @@ public class ExcelController {
             exportList.add(dto);
         }
 
-        EasyExcel.write(response.getOutputStream(), ExcelDataDTO.class)
-                .sheet("上报失败数据")
+        String fileName = "上报失败数据_" + batchNo + "_共" + exportList.size() + "条";
+        writeErrorExcel(response, fileName, "上报失败数据", exportList);
+    }
+
+    @GetMapping("/export/import-errors/{batchNo}")
+    @Operation(summary = "下载异常数据模板", description = "导出导入校验失败的异常数据，列顺序与导入模板一致，修正后可直接重新上传")
+    public void exportImportErrors(@PathVariable String batchNo, HttpServletResponse response) throws IOException {
+        List<ExcelDataDTO> errorList = excelImportService.getImportErrorData(batchNo);
+
+        if (errorList.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.getWriter().write(JSONUtil.toJsonStr(ApiResponse.error(404, "该批次没有可导出的异常数据")));
+            return;
+        }
+
+        // 转换为导出DTO，列顺序与导入模板一致，最后一列为错误原因
+        List<ErrorExportDTO> exportList = new ArrayList<>();
+        for (ExcelDataDTO error : errorList) {
+            ErrorExportDTO dto = new ErrorExportDTO();
+            dto.setDataCode(error.getDataCode());
+            dto.setName(error.getName());
+            dto.setIdCard(error.getIdCard());
+            dto.setPhone(error.getPhone());
+            dto.setAmount(error.getAmount());
+            dto.setAddress(error.getAddress());
+            dto.setRemark(error.getRemark());
+            dto.setErrorMsg(error.getErrorMsg());
+            exportList.add(dto);
+        }
+
+        String fileName = "导入异常数据_" + batchNo + "_共" + exportList.size() + "条";
+        writeErrorExcel(response, fileName, "异常数据", exportList);
+    }
+
+    /**
+     * 写出异常数据Excel，文件名带任务号（批次号）和错误数量
+     */
+    private void writeErrorExcel(HttpServletResponse response, String fileName, String sheetName,
+                                 List<ErrorExportDTO> exportList) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+                .replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + encodedFileName + ".xlsx");
+
+        EasyExcel.write(response.getOutputStream(), ErrorExportDTO.class)
+                .sheet(sheetName)
                 .doWrite(exportList);
     }
 }

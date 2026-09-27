@@ -126,13 +126,37 @@
 
       <!-- 错误列表 -->
       <div v-if="importResult.errorList && importResult.errorList.length > 0">
-        <h4 class="font-medium text-gray-700 mb-3">错误数据详情</h4>
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-medium text-gray-700">错误数据详情</h4>
+          <el-button
+            type="primary"
+            link
+            size="small"
+            :loading="downloadingErrors"
+            @click="downloadErrors"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            下载异常数据模板
+          </el-button>
+        </div>
         <el-table :data="importResult.errorList" stripe max-height="300">
           <el-table-column prop="rowIndex" label="行号" width="80" />
           <el-table-column prop="dataCode" label="数据编号" width="120" />
           <el-table-column prop="name" label="姓名" width="100" />
           <el-table-column prop="errorMsg" label="错误原因" />
         </el-table>
+        <div class="mt-3 p-3 bg-yellow-50 rounded-lg">
+          <p class="text-sm text-yellow-700">
+            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            下载的异常数据模板仅包含异常行，列顺序与导入模板一致（最后一列为错误原因），修正后可直接重新上传
+          </p>
+        </div>
       </div>
 
       <!-- 操作按钮 -->
@@ -160,6 +184,10 @@
         </div>
         <div class="flex items-start">
           <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">4</span>
+          <p>存在异常数据时，可下载异常数据模板，修正后直接重新上传</p>
+        </div>
+        <div class="flex items-start">
+          <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">5</span>
           <p>支持最多5万条数据导入，系统采用流式解析，内存占用低</p>
         </div>
       </div>
@@ -171,7 +199,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { excelApi } from '@/api'
+import { excelApi, downloadFile } from '@/api'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -182,6 +210,7 @@ const selectedFile = ref(null)
 const uploading = ref(false)
 const uploadProgress = ref(0)
 const importResult = ref(null)
+const downloadingErrors = ref(false)
 
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 B'
@@ -251,6 +280,18 @@ const downloadTemplate = () => {
   const token = userStore.token
   const url = excelApi.downloadTemplate()
   window.open(`${url}?token=${token}`, '_blank')
+}
+
+const downloadErrors = async () => {
+  if (!importResult.value?.batchNo) return
+  downloadingErrors.value = true
+  try {
+    await downloadFile(excelApi.exportImportErrors(importResult.value.batchNo))
+  } catch (error) {
+    // 错误已在拦截器中处理
+  } finally {
+    downloadingErrors.value = false
+  }
 }
 
 const resetImport = () => {

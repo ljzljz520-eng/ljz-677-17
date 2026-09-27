@@ -48,11 +48,21 @@
             {{ formatTime(row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <div class="flex space-x-2">
               <el-button type="primary" link size="small" @click="viewDetail(row)">
                 详情
+              </el-button>
+              <el-button
+                v-if="row.failCount > 0"
+                type="warning"
+                link
+                size="small"
+                :loading="downloadingBatchNo === row.batchNo"
+                @click="downloadImportErrors(row)"
+              >
+                下载异常
               </el-button>
               <el-button
                 v-if="row.status === 1"
@@ -153,7 +163,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { excelApi } from '@/api'
+import { excelApi, downloadFile } from '@/api'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -161,6 +171,7 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const records = ref([])
+const downloadingBatchNo = ref('')
 const pagination = reactive({
   pageNum: 1,
   pageSize: 10,
@@ -274,6 +285,17 @@ const exportErrors = () => {
   const token = userStore.token
   const url = excelApi.exportErrors(currentBatchNo.value)
   window.open(`${url}?token=${token}`, '_blank')
+}
+
+const downloadImportErrors = async (row) => {
+  downloadingBatchNo.value = row.batchNo
+  try {
+    await downloadFile(excelApi.exportImportErrors(row.batchNo))
+  } catch (error) {
+    // 错误已在拦截器中处理
+  } finally {
+    downloadingBatchNo.value = ''
+  }
 }
 
 onMounted(() => {

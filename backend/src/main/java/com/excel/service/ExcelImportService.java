@@ -1,6 +1,8 @@
 package com.excel.service;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.support.ExcelTypeEnum;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -23,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -88,6 +91,8 @@ public class ExcelImportService {
                             .append(error.getErrorMsg()).append("\n");
                 }
                 record.setErrorDetails(errorDetails.toString());
+                // 持久化异常数据明细（JSON），用于后续导出异常数据模板
+                record.setErrorData(JSONUtil.toJsonStr(listener.getErrorList()));
             }
 
             importRecordMapper.updateById(record);
@@ -134,6 +139,31 @@ public class ExcelImportService {
                 new LambdaQueryWrapper<ExcelData>()
                         .eq(ExcelData::getBatchNo, batchNo)
                         .orderByAsc(ExcelData::getId));
+    }
+
+    /**
+     * 根据批次号获取导入记录
+     */
+    public ImportRecord getImportRecord(String batchNo) {
+        return importRecordMapper.selectOne(
+                new LambdaQueryWrapper<ImportRecord>()
+                        .eq(ImportRecord::getBatchNo, batchNo));
+    }
+
+    /**
+     * 获取批次的导入异常数据（从持久化的JSON明细中解析）
+     */
+    public List<ExcelDataDTO> getImportErrorData(String batchNo) {
+        ImportRecord record = getImportRecord(batchNo);
+        if (record == null || StrUtil.isBlank(record.getErrorData())) {
+            return Collections.emptyList();
+        }
+        try {
+            return JSONUtil.toList(record.getErrorData(), ExcelDataDTO.class);
+        } catch (Exception e) {
+            logger.error("解析批次{}的异常数据明细失败", batchNo, e);
+            return Collections.emptyList();
+        }
     }
 
     /**
